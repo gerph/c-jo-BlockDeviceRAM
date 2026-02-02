@@ -1,7 +1,7 @@
 # Makefile for BlockDeviceRAM
 
 COMPONENT = BlockDeviceRAM
-OBJS = main devices RAMDevice RAM_IO
+OBJS = Module RAMDevice RAMIO
 RES_OBJ =
 
 include CModule
@@ -9,7 +9,7 @@ include CModule
 #CMHG = cmunge
 #CMHGFLAGS = -32bit
 
-c.main: h.BlockDeviceRAMHdr
-c.devices: h.BlockDeviceRAMHdr
+c.Module: h.BlockDeviceRAMHdr
+c.RAMDevice: h.BlockDeviceRAMHdr
 
 # Dynamic dependencies:

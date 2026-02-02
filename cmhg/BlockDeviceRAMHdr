@@ -1,7 +1,7 @@
 ; CMHG File for BlockDeviceTest
 
 #include "VersionNum"
-#include "BlockDevices.h"
+#include "Interface/BlockDevices.h"
 
 title-string: BlockDeviceRAM
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Chris Johns
+ * Copyright (c) 2026, Chris Johns
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,22 +35,16 @@
 #include "Global/HALDevice.h"
 #include "Global/NewErrors.h"
 
+#include "Interface/BlockDevices.h"
+
 #include "RAMDevice.h"
 #include "BlockDeviceRAMHdr.h"
-#include "BlockDevices.h"
-#include "RAM_IO.h"
+#include "RAMIO.h"
 
-#include "devices.h"
-
-/* A quick macro to silence compiler warnings about unused parameters */
-#define IGNORE(x) do { (void)(x); } while(0)
+#define IGNORE(x) (void)(x);
 
 static _kernel_oserror err_UnkDevice = { 0, "Unknown device." };
 static _kernel_oserror err_BadReason = { 0, "Bad reason code." };
-static _kernel_oserror err_TestError = { 0, "Test error." };
-
-//static void *block4k;
-//static uint32_t block4k_pci;
 
 _kernel_oserror *module_initialise(const char *cmd_tail, int podule_base, void *pw)
 {
@@ -61,29 +55,21 @@ _kernel_oserror *module_initialise(const char *cmd_tail, int podule_base, void *
   IGNORE(pw);
 
   unsigned req_blocks = 1000000;
+  mydevice.block_size = 512;
 
-  mydevice.info.interface_type = BlockDevice_Interface_NVMe;
-
-  mydevice.info.block_size = 512;
-  mydevice.info.name = "BlockDevices RAM Disc";
-  mydevice.info.manufacturer = "";
-  mydevice.info.product = "RAMDISC";
-  mydevice.info.serial = "";
-  mydevice.info.firmware = "";
-
-  unsigned max_size;
+  unsigned max_size = 0;
 
   if ((e = _swix(OS_DynamicArea, _INR(0,8)|_OUT(1)|_OUT(3)|_OUT(5),
-      0, -1,  req_blocks * mydevice.info.block_size, -1, 1<<7, // | 1<<10 /* Can't Drag, Sparse */,
-      -1 /*req_blocks * mydevice.info.block_size*/, 0, -1,
-      "BlockDevice RAM",
+                 0, -1,  req_blocks * mydevice.block_size, -1,
+                 1<<7, /* Can't Drag */
+                 -1, 0, -1,
+                 "RAM BlockDevice",
       &mydevice.dynamic_area, &mydevice.area_base, &max_size)) != 0) return e;
 
-  mydevice.info.block_count = max_size / (unsigned)mydevice.info.block_size;
+  mydevice.block_count = max_size / (unsigned)mydevice.block_size;
 
-  if (mydevice.info.block_count != req_blocks)
-    printf("*** Wanted %d blocks, got %lld\n",
-           req_blocks, mydevice.info.block_count);
+  if (mydevice.block_count != req_blocks)
+    printf("*** Wanted %d blocks, got %d\n", req_blocks, mydevice.block_count);
 
   devices_register(pw);
   return 0;
@@ -109,7 +95,6 @@ void module_service(int service, _kernel_swi_regs *r, void *pw)
 {
   (void)r;
 
-  printf("module_service %d (&%x)\n", service, service);
     switch (service)
     {
         case Service_BlockDevices_Started:
@@ -126,6 +111,8 @@ _kernel_oserror *Driver_Handler(_kernel_swi_regs *r, void *pw)
 {
   ram_device_t *device = devices_find(r->r[1]);
   if (!device) return &err_UnkDevice;
+
+  IGNORE(pw);
 
   switch (r->r[0]) {
   case 1:

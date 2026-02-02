@@ -1,4 +1,4 @@
-#include "RAM_IO.h"
+#include "RAMIO.h"
 #include "swis.h"
 
 #include <stdio.h>
@@ -9,6 +9,7 @@
 #include "DebugLib/DebugLib.h"
 
 #define UNUSED(x) {(void)x;}
+#define MAX_XFER 64
 
 _kernel_oserror *ram_io(unsigned op,
                         ram_device_t *device,
@@ -17,18 +18,17 @@ _kernel_oserror *ram_io(unsigned op,
 {
   UNUSED(flags);
 
-  //_kernel_oserror *e = 0;
-
   while (block->count > 0)
   {
-    unsigned this = block->count< 8 ? block->count : 8;
-    unsigned offset = (unsigned)block->lba * device->info.block_size;
+    unsigned this = block->count< MAX_XFER ? block->count : MAX_XFER;
+    unsigned offset = (unsigned)block->lba * device->block_size;
 
     void *ram = (char*)device->area_base + offset;
-    size_t size = this * device->info.block_size;
+    size_t size = this * device->block_size;
 
-    dprintf(("", "ram_op %d,lba:%lld, address:%p, count:%d. this:%d, offset:%d\n",
-           op, block->lba, block->address, block->count, this, offset));
+    dprintf(("", "ram_op %d, lba:%lld, address:%p, count:%d. "
+                 "this:%d, offset:%d\n",
+                 op, block->lba, block->address, block->count, this, offset));
 
     if (op == 1)
       memcpy(block->address, ram, size);
@@ -37,7 +37,7 @@ _kernel_oserror *ram_io(unsigned op,
       memcpy(ram, block->address, size);
 
     block->lba += this;
-    block->address = (char*)block->address + this * device->info.block_size;
+    block->address = (char*)block->address + this * device->block_size;
     block->count -= this;
   }
 
