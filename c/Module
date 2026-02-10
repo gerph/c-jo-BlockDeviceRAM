@@ -32,10 +32,11 @@
 #include <time.h>
 #include "swis.h"
 
-#include "Global/HALDevice.h"
-#include "Global/NewErrors.h"
-
+#ifdef ROBS
+#include "BlockDevices.h"
+#else
 #include "Interface/BlockDevices.h"
+#endif
 
 #include "RAMDevice.h"
 #include "BlockDeviceRAMHdr.h"
@@ -49,15 +50,17 @@ static _kernel_oserror err_BadReason = { 0, "Bad reason code." };
 _kernel_oserror *module_initialise(const char *cmd_tail, int podule_base, void *pw)
 {
   _kernel_oserror *e = 0;
+  uint32_t req_blocks;
+  uint32_t max_size;
 
   IGNORE(cmd_tail);
   IGNORE(podule_base);
   IGNORE(pw);
 
-  unsigned req_blocks = 1000000;
+  req_blocks = 1000000;
   mydevice.block_size = 512;
 
-  unsigned max_size = 0;
+  max_size = 0;
 
   if ((e = _swix(OS_DynamicArea, _INR(0,8)|_OUT(1)|_OUT(3)|_OUT(5),
                  0, -1,  req_blocks * mydevice.block_size, -1,

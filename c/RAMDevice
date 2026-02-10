@@ -9,7 +9,11 @@
 
 #include "RAMDevice.h"
 #include "BlockDeviceRAMHdr.h"
+#ifdef ROBS
+#include "BlockDevices.h"
+#else
 #include "Interface/BlockDevices.h"
+#endif
 
 #include <stdio.h>
 
@@ -39,7 +43,7 @@ void devices_register(void *pw)
     info.flags           = 0;
     info.parent_device   = 0;
     info.device_index    = 0;
-    info.block_count     = device->block_count;
+    LL_UI2L(info.block_count, device->block_count);
     info.block_size      = device->block_size;
     info.device_type     = BlockDevice_DeviceType_Disc;
     info.interface_type  = BlockDevice_InterfaceType_RAM;
@@ -70,9 +74,9 @@ void devices_register(void *pw)
  ******************************************************************/
 void devices_deregister(void *pw, int call_deregister)
 {
-    (void)pw;
-
     ram_device_t *device = &mydevice;
+
+    (void)pw;
 
     /* First, deregister the devices if necessary */
     if (call_deregister)

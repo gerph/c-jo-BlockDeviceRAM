@@ -1,7 +1,11 @@
 ; CMHG File for BlockDeviceTest
 
 #include "VersionNum"
+#ifdef ROBS
+#include "BlockDevices.h"
+#else
 #include "Interface/BlockDevices.h"
+#endif
 
 title-string: BlockDeviceRAM
 

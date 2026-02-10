@@ -6,7 +6,11 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#ifdef ROBS
+#define dprintf(x) /* nothing */
+#else
 #include "DebugLib/DebugLib.h"
+#endif
 
 #define UNUSED(x) {(void)x;}
 #define MAX_XFER 64
@@ -20,15 +24,26 @@ _kernel_oserror *ram_io(unsigned op,
 
   while (block->count > 0)
   {
-    unsigned this = block->count< MAX_XFER ? block->count : MAX_XFER;
-    unsigned offset = (unsigned)block->lba * device->block_size;
+    unsigned blocks = block->count< MAX_XFER ? block->count : MAX_XFER;
+    /* The offset can never be large enough to fill a 32bit value, so there's
+     * no need to use 64-bit calculations.
+     */
+    uint32_t lba;
+    uint32_t offset;
+    void *ram;
+    size_t size;
 
-    void *ram = (char*)device->area_base + offset;
-    size_t size = this * device->block_size;
+    LL_L2UI(lba, block->lba);
+    offset = lba * device->block_size;
+
+    ram = (char*)device->area_base + offset;
+    size = blocks * device->block_size;
+
+    /* FIXME: We don't check that this transfer is within the disc */
 
     dprintf(("", "ram_op %d, lba:%lld, address:%p, count:%d. "
                  "this:%d, offset:%d\n",
-                 op, block->lba, block->address, block->count, this, offset));
+                 op, block->lba, block->address, block->count, blocks, offset));
 
     if (op == 1)
       memcpy(block->address, ram, size);
@@ -36,9 +51,10 @@ _kernel_oserror *ram_io(unsigned op,
     if (op == 2)
       memcpy(ram, block->address, size);
 
-    block->lba += this;
-    block->address = (char*)block->address + this * device->block_size;
-    block->count -= this;
+    lba += blocks;
+    LL_UI2L(block->lba, lba);
+    block->address = (char*)block->address + size;
+    block->count -= blocks;
   }
 
   return 0;
